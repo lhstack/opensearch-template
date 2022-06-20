@@ -13,7 +13,7 @@ import com.lhstack.opensearch.idgenerator.CustomIdGenerator;
  * @Date 2022/6/20 10:12
  * @Modify by
  */
-@Document(value = ".test_mapping")
+@Document(value = ".test_mapping",mappingPath = "classpath:mappings/.test_mapping.json")
 public class TestEntity {
 
     @Id(idInsertStrategy = IdInsertStrategy.SNOW_FLAKE)

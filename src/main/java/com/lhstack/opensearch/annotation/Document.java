@@ -21,7 +21,8 @@ public @interface Document {
     String value() default "";
 
     /**
-     * mapping json文件，默认classpath:/mappings/Class.name
+     * classpath:路径首字母不要使用/
+     * mapping json文件，默认classpath:mappings/Class.name
      *
      * @return
      */
