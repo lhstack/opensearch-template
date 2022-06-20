@@ -1,0 +1,24 @@
+{
+  "settings": {
+    "number_of_replicas": 1,
+    "number_of_shards": 1,
+    "refresh_interval": "1s"
+  },
+  "mappings": {
+    "dynamic_date_formats": ["yyyy-MM-dd HH:mm:ss","yyyy/MM/dd HH/mm/ss"],
+    "properties": {
+      "name": {
+        "type": "keyword",
+        "index": true,
+        "store": true
+      },
+      "content": {
+        "type": "text",
+        "index": true,
+        "store": true,
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_max_word"
+      }
+    }
+  }
+}
