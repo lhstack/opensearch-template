@@ -19,10 +19,19 @@ public class PageRequest {
 
     private final Consumer<SearchSourceBuilder> consumer;
 
+    public static PageRequest ofRequest(int page, int size, Consumer<SearchSourceBuilder> consumer) {
+        return new PageRequest(page, size, consumer);
+    }
+
+    public static PageRequest ofRequest(int page, int size) {
+        return new PageRequest(page, size);
+    }
+
     public PageRequest(int page, int size) {
         this.page = page;
         this.size = size;
-        this.consumer = searchSourceBuilder -> {};
+        this.consumer = searchSourceBuilder -> {
+        };
     }
 
     public PageRequest(int page, int size, Consumer<SearchSourceBuilder> consumer) {
