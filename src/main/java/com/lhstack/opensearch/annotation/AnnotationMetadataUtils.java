@@ -3,6 +3,7 @@ package com.lhstack.opensearch.annotation;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -19,11 +20,11 @@ public class AnnotationMetadataUtils {
         AnnotationMetadata annotationMetadata = new AnnotationMetadata();
         Document document = clazz.getAnnotation(Document.class);
         if (Objects.isNull(document)) {
-            annotationMetadata.setIndex(clazz.getSimpleName());
+            annotationMetadata.setIndex(clazz.getSimpleName().toLowerCase(Locale.ROOT));
             annotationMetadata.setMappingPath("classpath:mappings/".concat(annotationMetadata.getIndex()).concat(".json"));
             annotationMetadata.setIdGenerator(IdGeneratorFactory.getOrNewInstanceIdGenerator(IdInsertStrategy.UUID, null));
         } else {
-            annotationMetadata.setIndex(document.value().isBlank() ? clazz.getSimpleName() : document.value());
+            annotationMetadata.setIndex(document.value().isBlank() ? clazz.getSimpleName().toLowerCase(Locale.ROOT) : document.value());
             annotationMetadata.setMappingPath(document.mappingPath().isBlank() ? "classpath:mappings/".concat(annotationMetadata.getIndex()).concat(".json") : document.mappingPath());
             List<Field> ids = Arrays.stream(clazz.getDeclaredFields()).filter(item -> Objects.nonNull(item.getAnnotation(Id.class)))
                     .collect(Collectors.toList());
