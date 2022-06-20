@@ -36,6 +36,7 @@ import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.index.reindex.UpdateByQueryRequest;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.script.Script;
+import org.opensearch.script.ScriptType;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
@@ -44,10 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Consumer;
 
 /**
@@ -123,6 +121,32 @@ public class OpenSearchTemplate {
      */
     public Boolean updateByQuery(Class<?> clazz, QueryBuilder queryBuilder, Script script) {
         return updateByQuery(AnnotationMetadataFactory.getIndex(clazz), queryBuilder, script);
+    }
+
+    /**
+     * Boolean result = openSearchTemplate.updateByQuery(TestEntity.class,
+     *                 QueryBuilders.matchQuery("content", "世界"), "ctx._source.name=params.name", Map.of("name", "世界Titles"));
+     * @param clazz
+     * @param queryBuilder
+     * @param painless
+     * @param params
+     * @return
+     */
+    public Boolean updateByQuery(Class<?> clazz, QueryBuilder queryBuilder, String painless, Map<String,Object> params){
+        return this.updateByQuery(clazz,queryBuilder,new Script(ScriptType.INLINE,"painless",painless,params));
+    }
+
+    /**
+     * Boolean result = openSearchTemplate.updateByQuery(TestEntity.class,
+     *                 QueryBuilders.matchQuery("content", "世界"), "ctx._source.name=params.name", Map.of("name", "世界Titles"));
+     * @param index
+     * @param queryBuilder
+     * @param painless
+     * @param params
+     * @return
+     */
+    public Boolean updateByQuery(String index, QueryBuilder queryBuilder, String painless, Map<String,Object> params){
+        return this.updateByQuery(index,queryBuilder,new Script(ScriptType.INLINE,"painless",painless,params));
     }
 
 

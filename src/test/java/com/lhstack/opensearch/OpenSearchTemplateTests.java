@@ -10,13 +10,17 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestClient;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.UpdateByQueryRequest;
+import org.opensearch.script.Script;
+import org.opensearch.script.ScriptType;
 import org.opensearch.search.sort.SortBuilders;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -49,6 +53,8 @@ class OpenSearchTemplateTests {
         System.out.println(result);
     }
 
+
+
     @Test
     void testDeleteById(){
         System.out.println(openSearchTemplate.deleteById("test", "null"));
@@ -77,6 +83,13 @@ class OpenSearchTemplateTests {
     }
 
     @Test
+    void testUpdateByQuery(){
+        Boolean result = openSearchTemplate.updateByQuery(TestEntity.class,
+                QueryBuilders.matchQuery("content", "世界"), "ctx._source.name=params.name", Map.of("name", "世界Titles"));
+        System.out.println(result);
+    }
+
+    @Test
     void testSearchList(){
         System.out.println(openSearchTemplate.searchList(TestEntity.class, searchSourceBuilder -> {
             searchSourceBuilder.query(QueryBuilders.matchQuery("content","世界"))
@@ -93,7 +106,7 @@ class OpenSearchTemplateTests {
     @Test
     void testSaveOrUpdate(){
         TestEntity testEntity = new TestEntity();
-        testEntity.setContent("你好世界");
+        testEntity.setContent("世界你好");
         testEntity.setName("title");
         System.out.println(openSearchTemplate.saveOrUpdate(testEntity));
         System.out.println(testEntity);
