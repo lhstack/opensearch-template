@@ -85,7 +85,7 @@ class OpenSearchTemplateTests {
     @Test
     void testUpdateByQuery(){
         Boolean result = openSearchTemplate.updateByQuery(TestEntity.class,
-                QueryBuilders.matchQuery("content", "世界"), "ctx._source.name=params.name", Map.of("name", "世界Titles"));
+                QueryBuilders.matchQuery("content", "世界"), "ctx._source.name=params.name;ctx._source.content=ctx._source.content + params.name", Map.of("name", "世界Titles"));
         System.out.println(result);
     }
 
@@ -106,7 +106,7 @@ class OpenSearchTemplateTests {
     @Test
     void testSaveOrUpdate(){
         TestEntity testEntity = new TestEntity();
-        testEntity.setContent("世界你好");
+        testEntity.setContent("你好世界");
         testEntity.setName("title");
         System.out.println(openSearchTemplate.saveOrUpdate(testEntity));
         System.out.println(testEntity);

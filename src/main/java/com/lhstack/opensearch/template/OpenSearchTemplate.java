@@ -125,7 +125,7 @@ public class OpenSearchTemplate {
 
     /**
      * Boolean result = openSearchTemplate.updateByQuery(TestEntity.class,
-     *                 QueryBuilders.matchQuery("content", "世界"), "ctx._source.name=params.name", Map.of("name", "世界Titles"));
+     *                 QueryBuilders.matchQuery("content", "世界"), "ctx._source.name=params.name;ctx._source.content=ctx._source.content + params.name", Map.of("name", "世界Titles"));
      * @param clazz
      * @param queryBuilder
      * @param painless
@@ -138,7 +138,7 @@ public class OpenSearchTemplate {
 
     /**
      * Boolean result = openSearchTemplate.updateByQuery(TestEntity.class,
-     *                 QueryBuilders.matchQuery("content", "世界"), "ctx._source.name=params.name", Map.of("name", "世界Titles"));
+     *                 QueryBuilders.matchQuery("content", "世界"), "ctx._source.name=params.name;ctx._source.content=ctx._source.content + params.name", Map.of("name", "世界Titles"));
      * @param index
      * @param queryBuilder
      * @param painless
