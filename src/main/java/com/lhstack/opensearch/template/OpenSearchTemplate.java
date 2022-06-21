@@ -1,6 +1,8 @@
 package com.lhstack.opensearch.template;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
 import com.lhstack.opensearch.annotation.AnnotationMetadata;
 import com.lhstack.opensearch.annotation.AnnotationMetadataFactory;
 import com.lhstack.opensearch.query.PageRequest;
@@ -9,6 +11,7 @@ import com.lhstack.opensearch.utils.ConvertUtils;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.util.EntityUtils;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.action.bulk.BulkRequest;
@@ -20,10 +23,7 @@ import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.master.AcknowledgedResponse;
-import org.opensearch.client.RequestOptions;
-import org.opensearch.client.Requests;
-import org.opensearch.client.RestClientBuilder;
-import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.*;
 import org.opensearch.client.indices.CreateIndexRequest;
 import org.opensearch.client.indices.GetIndexRequest;
 import org.opensearch.client.indices.PutMappingRequest;
@@ -60,9 +60,11 @@ public class OpenSearchTemplate {
     private final RestHighLevelClient restHighLevelClient;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OpenSearchTemplate.class);
+    private final RestClient lowLevelClient;
 
     public OpenSearchTemplate(RestClientBuilder restClientBuilder) {
         this.restHighLevelClient = new RestHighLevelClient(restClientBuilder);
+        this.lowLevelClient = this.restHighLevelClient.getLowLevelClient();
     }
 
     public OpenSearchTemplate(RestClientBuilder restClientBuilder, UsernamePasswordCredentials usernamePasswordCredentials) {
@@ -70,6 +72,7 @@ public class OpenSearchTemplate {
         basicCredentialsProvider.setCredentials(AuthScope.ANY, usernamePasswordCredentials);
         restClientBuilder.setHttpClientConfigCallback(httpAsyncClientBuilder -> httpAsyncClientBuilder.disableAuthCaching().setDefaultCredentialsProvider(basicCredentialsProvider));
         this.restHighLevelClient = new RestHighLevelClient(restClientBuilder);
+        this.lowLevelClient = this.restHighLevelClient.getLowLevelClient();
     }
 
     /**
@@ -125,28 +128,30 @@ public class OpenSearchTemplate {
 
     /**
      * Boolean result = openSearchTemplate.updateByQuery(TestEntity.class,
-     *                 QueryBuilders.matchQuery("content", "世界"), "ctx._source.name=params.name;ctx._source.content=ctx._source.content + params.name", Map.of("name", "世界Titles"));
+     * QueryBuilders.matchQuery("content", "世界"), "ctx._source.name=params.name;ctx._source.content=ctx._source.content + params.name", Map.of("name", "世界Titles"));
+     *
      * @param clazz
      * @param queryBuilder
      * @param painless
      * @param params
      * @return
      */
-    public Boolean updateByQuery(Class<?> clazz, QueryBuilder queryBuilder, String painless, Map<String,Object> params){
-        return this.updateByQuery(clazz,queryBuilder,new Script(ScriptType.INLINE,"painless",painless,params));
+    public Boolean updateByQuery(Class<?> clazz, QueryBuilder queryBuilder, String painless, Map<String, Object> params) {
+        return this.updateByQuery(clazz, queryBuilder, new Script(ScriptType.INLINE, "painless", painless, params));
     }
 
     /**
      * Boolean result = openSearchTemplate.updateByQuery(TestEntity.class,
-     *                 QueryBuilders.matchQuery("content", "世界"), "ctx._source.name=params.name;ctx._source.content=ctx._source.content + params.name", Map.of("name", "世界Titles"));
+     * QueryBuilders.matchQuery("content", "世界"), "ctx._source.name=params.name;ctx._source.content=ctx._source.content + params.name", Map.of("name", "世界Titles"));
+     *
      * @param index
      * @param queryBuilder
      * @param painless
      * @param params
      * @return
      */
-    public Boolean updateByQuery(String index, QueryBuilder queryBuilder, String painless, Map<String,Object> params){
-        return this.updateByQuery(index,queryBuilder,new Script(ScriptType.INLINE,"painless",painless,params));
+    public Boolean updateByQuery(String index, QueryBuilder queryBuilder, String painless, Map<String, Object> params) {
+        return this.updateByQuery(index, queryBuilder, new Script(ScriptType.INLINE, "painless", painless, params));
     }
 
 
@@ -208,6 +213,69 @@ public class OpenSearchTemplate {
         } catch (Exception e) {
             LOGGER.warn("putMapping throw error {}", e.getMessage(), e);
             return false;
+        }
+    }
+
+    public List<JSONObject> plugins() {
+        try {
+            Request request = new Request("GET", "_cat/plugins?format=json");
+            Response response = this.lowLevelClient.performRequest(request);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                LOGGER.warn("plugins failure,result {}", EntityUtils.toString(response.getEntity()));
+                return Collections.emptyList();
+            }
+            String result = EntityUtils.toString(response.getEntity());
+            return JSONArray.parseArray(result).toJavaList(JSONObject.class);
+        } catch (Exception e) {
+            LOGGER.error("plugins failure,error {}", e.getMessage(), e);
+            return Collections.emptyList();
+        }
+    }
+
+    public List<JSONObject> analyze(String analyzer, String content) {
+        try {
+            Request request = new Request("GET", "_analyze");
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("analyzer", analyzer);
+            jsonObject.put("text", content);
+            request.setJsonEntity(jsonObject.toJSONString());
+            Response response = this.lowLevelClient.performRequest(request);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                LOGGER.warn("analyze failure,result {}", EntityUtils.toString(response.getEntity()));
+                return Collections.emptyList();
+            }
+            String result = EntityUtils.toString(response.getEntity());
+            return JSONObject.parseObject(result).getObject("tokens", new TypeReference<List<JSONObject>>() {
+            });
+        } catch (Exception e) {
+            LOGGER.error("analyze failure,error {}", e.getMessage(), e);
+            return Collections.emptyList();
+        }
+    }
+
+    public List<JSONObject> analyze(Class<?> clazz, String field, String content) {
+        return analyze(AnnotationMetadataFactory.getIndex(clazz), field, content);
+    }
+
+    public List<JSONObject> analyze(String index, String field, String content) {
+        try {
+
+            Request request = new Request("GET", String.format("%s/_analyze", index));
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("field", field);
+            jsonObject.put("text", content);
+            request.setJsonEntity(jsonObject.toJSONString());
+            Response response = this.lowLevelClient.performRequest(request);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                LOGGER.warn("analyze failure,result {}", EntityUtils.toString(response.getEntity()));
+                return Collections.emptyList();
+            }
+            String result = EntityUtils.toString(response.getEntity());
+            return JSONObject.parseObject(result).getObject("tokens", new TypeReference<List<JSONObject>>() {
+            });
+        } catch (Exception e) {
+            LOGGER.error("analyze failure,error {}", e.getMessage(), e);
+            return Collections.emptyList();
         }
     }
 

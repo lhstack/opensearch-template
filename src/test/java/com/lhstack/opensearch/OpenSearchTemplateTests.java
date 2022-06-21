@@ -1,5 +1,6 @@
 package com.lhstack.opensearch;
 
+import com.alibaba.fastjson.JSONObject;
 import com.lhstack.opensearch.entity.TestEntity;
 import com.lhstack.opensearch.query.PageRequest;
 import com.lhstack.opensearch.query.PageResponse;
@@ -8,8 +9,9 @@ import org.apache.http.HttpHost;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.opensearch.client.RequestOptions;
-import org.opensearch.client.RestClient;
+import org.opensearch.client.*;
+import org.opensearch.client.core.GetSourceRequest;
+import org.opensearch.client.core.GetSourceResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -53,6 +55,19 @@ class OpenSearchTemplateTests {
         System.out.println(result);
     }
 
+    @Test
+    void testAnalyze(){
+        List<JSONObject> analyze = openSearchTemplate.analyze(TestEntity.class, "content", "中华人民共和国");
+        System.out.println(analyze);
+
+        List<JSONObject> result = openSearchTemplate.analyze("ik_smart", "我已经远离了你的河流，绝不是疏远，因为我已是身居异土。远远地，依然听得到你翻山越岭、日夜兼程的脚步声，依然无比清晰地看得到你的那条洒满星星的清澈的河流。只要，也只有想起你——故乡，就是异域的那条河流也会洒满故乡的星星。无论醒着还是沉睡，都会重复着那个让人心旌摇曳的画面，星星都在你的河流里百媚地眨眼。因为那条洒满星星的河流途经我无猜的孩童，无知的少年，迷茫的青春，还要经过可知的未来，是不是今后还要交付给大海了呢？那样，大海的那些星星一定是故乡送给他们的馈赠，没有故乡的孕育，大海也会失去灵气，因为大海的源头就在故乡的这头……");
+        System.out.println(result);
+    }
+
+    @Test
+    void testPlugins(){
+        System.out.println(openSearchTemplate.plugins());
+    }
 
 
     @Test
