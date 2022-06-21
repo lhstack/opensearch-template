@@ -347,7 +347,7 @@ public class OpenSearchTemplate {
      * @param <T>
      * @return
      */
-    public <T> PageResponse<T> page(Class<T> clazz, PageRequest pageRequest) {
+    public <T> PageResponse<T> searchPage(Class<T> clazz, PageRequest pageRequest) {
         AnnotationMetadata annotationMetadata = AnnotationMetadataFactory.getAnnotationMetadata(clazz);
         try {
             SearchRequest searchRequest = Requests.searchRequest(annotationMetadata.getIndex());
@@ -361,6 +361,31 @@ public class OpenSearchTemplate {
             return new PageResponse<T>(pageRequest.getPage(), pageRequest.getSize(), searchResponse.getHits().getTotalHits().value, list);
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public <T> PageResponse<T> searchPageTemplate(Class<T> clazz, String templateId) {
+        return this.searchPageTemplate(clazz, templateId, Collections.emptyMap());
+    }
+
+    public <T> PageResponse<T> searchPageTemplate(Class<T> clazz, String templateId, Map<String, Object> params) {
+        try {
+            AnnotationMetadata annotationMetadata = AnnotationMetadataFactory.getAnnotationMetadata(clazz);
+            String template = annotationMetadata.getTemplate(templateId);
+            String queryDsl = VelocityUtils.process(template, params);
+            Request request = new Request("GET", String.format("%s/_search", annotationMetadata.getIndex()));
+            request.setJsonEntity(queryDsl);
+            Response response = this.lowLevelClient.performRequest(request);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                LOGGER.warn("pageTemplate failure,result {}", EntityUtils.toString(response.getEntity()));
+                return new PageResponse<>(0, Collections.emptyList());
+            }
+            JSONObject jsonObject = JSONObject.parseObject(EntityUtils.toString(response.getEntity()));
+            JSONObject hits = jsonObject.getJSONObject("hits");
+            return new PageResponse<>(hits.getJSONObject("total").getLongValue("value"), ConvertUtils.convertList(annotationMetadata, clazz, hits));
+        } catch (Exception e) {
+            LOGGER.error("pageTemplate failure,error {}", e.getMessage(), e);
+            return new PageResponse<>(0, Collections.emptyList());
         }
     }
 

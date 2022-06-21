@@ -26,11 +26,16 @@ public class PageResponse<T> {
         this.list = list;
     }
 
+    public PageResponse(long total, List<T> list) {
+        this.total = total;
+        this.list = list;
+    }
+
     public int getPage() {
         return page;
     }
 
-    public PageResponse setPage(int page) {
+    public PageResponse<T> setPage(int page) {
         this.page = page;
         return this;
     }
@@ -39,7 +44,7 @@ public class PageResponse<T> {
         return size;
     }
 
-    public PageResponse setSize(int size) {
+    public PageResponse<T> setSize(int size) {
         this.size = size;
         return this;
     }
@@ -48,7 +53,7 @@ public class PageResponse<T> {
         return total;
     }
 
-    public PageResponse setTotal(long total) {
+    public PageResponse<T> setTotal(long total) {
         this.total = total;
         return this;
     }
@@ -57,7 +62,7 @@ public class PageResponse<T> {
         return list;
     }
 
-    public PageResponse setList(List<T> list) {
+    public PageResponse<T> setList(List<T> list) {
         this.list = list;
         return this;
     }

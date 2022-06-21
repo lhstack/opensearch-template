@@ -138,6 +138,12 @@ class OpenSearchTemplateTests {
     }
 
     @Test
+    void testSearchPageTemplate(){
+        PageResponse<TestEntity> searchPage = openSearchTemplate.searchPageTemplate(TestEntity.class, "searchPage",Map.of("page",0,"size",10));
+        System.out.println(searchPage);
+    }
+
+    @Test
     void testSaveOrUpdate() {
         TestEntity testEntity = new TestEntity();
         testEntity.setContent("你好世界");
@@ -162,7 +168,7 @@ class OpenSearchTemplateTests {
 
     @Test
     void testPage() {
-        PageResponse<TestEntity> page = openSearchTemplate.page(TestEntity.class, new PageRequest(1, 10));
+        PageResponse<TestEntity> page = openSearchTemplate.searchPage(TestEntity.class, new PageRequest(1, 10));
         System.out.println(page);
     }
 

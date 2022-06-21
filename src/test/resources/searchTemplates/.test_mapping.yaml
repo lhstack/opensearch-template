@@ -16,3 +16,8 @@ searchList: |
        }
     }
   }
+searchPage: |
+  {
+    "from": "${page}",
+    "size": "${size}"
+  }
