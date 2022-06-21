@@ -23,9 +23,11 @@ public class AnnotationMetadataUtils {
             annotationMetadata.setIndex(clazz.getSimpleName().toLowerCase(Locale.ROOT));
             annotationMetadata.setMappingPath("classpath:mappings/".concat(annotationMetadata.getIndex()).concat(".json"));
             annotationMetadata.setIdGenerator(IdGeneratorFactory.getOrNewInstanceIdGenerator(IdInsertStrategy.UUID, null));
+            annotationMetadata.setTemplatePath("classpath:searchTemplates/".concat(annotationMetadata.getIndex()).concat(".yaml"));
         } else {
             annotationMetadata.setIndex(document.value().isBlank() ? clazz.getSimpleName().toLowerCase(Locale.ROOT) : document.value());
             annotationMetadata.setMappingPath(document.mappingPath().isBlank() ? "classpath:mappings/".concat(annotationMetadata.getIndex()).concat(".json") : document.mappingPath());
+            annotationMetadata.setTemplatePath(document.templatePath().isBlank() ? "classpath:searchTemplates/".concat(annotationMetadata.getIndex()).concat(".yaml") : document.templatePath());
             List<Field> ids = Arrays.stream(clazz.getDeclaredFields()).filter(item -> Objects.nonNull(item.getAnnotation(Id.class)))
                     .collect(Collectors.toList());
             if (ids.size() > 1) {

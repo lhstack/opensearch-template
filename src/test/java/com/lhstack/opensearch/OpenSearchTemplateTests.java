@@ -9,15 +9,8 @@ import org.apache.http.HttpHost;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.opensearch.client.*;
-import org.opensearch.client.core.GetSourceRequest;
-import org.opensearch.client.core.GetSourceResponse;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.client.RestClient;
 import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.index.reindex.UpdateByQueryRequest;
-import org.opensearch.script.Script;
-import org.opensearch.script.ScriptType;
 import org.opensearch.search.sort.SortBuilders;
 
 import java.util.ArrayList;
@@ -37,26 +30,26 @@ class OpenSearchTemplateTests {
     private static OpenSearchTemplate openSearchTemplate;
 
     @BeforeAll
-    static void before(){
+    static void before() {
         openSearchTemplate = new OpenSearchTemplate(
-                RestClient.builder(new HttpHost("192.168.2.188",9200)),
-                new UsernamePasswordCredentials("es","654321"));
+                RestClient.builder(new HttpHost("192.168.2.188", 9200)),
+                new UsernamePasswordCredentials("es", "654321"));
     }
 
     @Test
-    void testCreateIndex(){
+    void testCreateIndex() {
         Boolean result = openSearchTemplate.createIndex(TestEntity.class);
         System.out.println(result);
     }
 
     @Test
-    void testDeleteIndex(){
+    void testDeleteIndex() {
         Boolean result = openSearchTemplate.deleteIndex(TestEntity.class);
         System.out.println(result);
     }
 
     @Test
-    void testAnalyze(){
+    void testAnalyze() {
         List<JSONObject> analyze = openSearchTemplate.analyze(TestEntity.class, "content", "中华人民共和国");
         System.out.println(analyze);
 
@@ -65,61 +58,87 @@ class OpenSearchTemplateTests {
     }
 
     @Test
-    void testPlugins(){
+    void testPlugins() {
         System.out.println(openSearchTemplate.plugins());
     }
 
 
     @Test
-    void testDeleteById(){
+    void testSearchOneTemplate() {
+        Optional<TestEntity> testEntity = openSearchTemplate.searchOneTemplate(TestEntity.class, "searchOne", Map.of("name", "世界Titles"));
+        testEntity.ifPresent(System.out::println);
+    }
+
+    @Test
+    void testSearchListTemplate(){
+        List<TestEntity> list = openSearchTemplate.searchListTemplate(TestEntity.class, "searchList",Map.of("content","你好世界"));
+        System.out.println(list);
+    }
+
+    @Test
+    void testDeleteById() {
         System.out.println(openSearchTemplate.deleteById("test", "null"));
     }
 
 
     @Test
-    void testDeleteByIdUseObj(){
+    void testSearchTemplate(){
+        JSONObject jsonObject = openSearchTemplate.searchTemplate(".test_mapping", "{\n" +
+                "    \"query\": {\n" +
+                "       \"term\": {\n" +
+                "         \"_id\": {\n" +
+                "           \"value\": \"${id}\"\n" +
+                "         }\n" +
+                "       }\n" +
+                "    }\n" +
+                "  }", Map.of("id", "1538813540399640577"));
+        System.out.println(jsonObject);
+    }
+
+    @Test
+    void testDeleteByIdUseObj() {
         System.out.println(openSearchTemplate.deleteById(new TestEntity().setId("6")));
     }
 
     @Test
-    void testFindById(){
+    void testFindById() {
         Optional<TestEntity> byId = openSearchTemplate.findById(TestEntity.class, "6");
         byId.ifPresent(System.out::println);
     }
 
     @Test
-    void testSearchOne(){
+    void testSearchOne() {
         System.out.println(openSearchTemplate.searchOne(TestEntity.class, QueryBuilders.matchAllQuery()));
     }
 
     @Test
-    void testSearchAll(){
+    void testSearchAll() {
         System.out.println(openSearchTemplate.searchAll(TestEntity.class));
     }
 
     @Test
-    void testUpdateByQuery(){
+    void testUpdateByQuery() {
         Boolean result = openSearchTemplate.updateByQuery(TestEntity.class,
                 QueryBuilders.matchQuery("content", "世界"), "ctx._source.name=params.name;ctx._source.content=ctx._source.content + params.name", Map.of("name", "世界Titles"));
         System.out.println(result);
     }
 
     @Test
-    void testSearchList(){
+    void testSearchList() {
         System.out.println(openSearchTemplate.searchList(TestEntity.class, searchSourceBuilder -> {
-            searchSourceBuilder.query(QueryBuilders.matchQuery("content","世界"))
+            searchSourceBuilder.query(QueryBuilders.matchQuery("content", "世界"))
                     .sort(SortBuilders.fieldSort("_id"));
         }));
     }
 
     @Test
-    void testDeleteAll(){
+    void testDeleteAll() {
         Boolean delete = openSearchTemplate.delete(TestEntity.class, QueryBuilders.matchAllQuery());
         System.out.println(delete);
     }
 
     @Test
-    void testSaveOrUpdate(){
+    void testSaveOrUpdate() {
         TestEntity testEntity = new TestEntity();
         testEntity.setContent("你好世界");
         testEntity.setName("title");
@@ -128,7 +147,7 @@ class OpenSearchTemplateTests {
     }
 
     @Test
-    void testInsertBatch(){
+    void testInsertBatch() {
         TestEntity testEntity = new TestEntity();
         testEntity.setContent("你好世界");
         testEntity.setId("71214306c2cc495fb8ffd84b795ed9e2");
@@ -142,7 +161,7 @@ class OpenSearchTemplateTests {
     }
 
     @Test
-    void testPage(){
+    void testPage() {
         PageResponse<TestEntity> page = openSearchTemplate.page(TestEntity.class, new PageRequest(1, 10));
         System.out.println(page);
     }
@@ -154,13 +173,13 @@ class OpenSearchTemplateTests {
     }
 
     @Test
-    void testExistIndexOnClass(){
+    void testExistIndexOnClass() {
         Boolean result = openSearchTemplate.existIndex(TestEntity.class);
         System.out.println(result);
     }
 
     @Test
-    void testExistIndex(){
+    void testExistIndex() {
         Boolean test = openSearchTemplate.existIndex("test1");
         System.out.println(test);
     }

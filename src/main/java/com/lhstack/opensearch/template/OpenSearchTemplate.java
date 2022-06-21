@@ -8,6 +8,7 @@ import com.lhstack.opensearch.annotation.AnnotationMetadataFactory;
 import com.lhstack.opensearch.query.PageRequest;
 import com.lhstack.opensearch.query.PageResponse;
 import com.lhstack.opensearch.utils.ConvertUtils;
+import com.lhstack.opensearch.utils.VelocityUtils;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.impl.client.BasicCredentialsProvider;
@@ -536,6 +537,79 @@ public class OpenSearchTemplate {
         return this.searchList(clazz, searchSourceBuilder -> searchSourceBuilder.query(queryBuilder));
     }
 
+    public <T> List<T> searchListTemplate(Class<T> clazz, String templateId) {
+        return this.searchListTemplate(clazz, templateId, Collections.emptyMap());
+    }
+
+    public JSONObject searchTemplate(Class<?> clazz, String templateId) {
+        return this.searchTemplate(clazz, templateId, Collections.emptyMap());
+    }
+
+    public JSONObject searchTemplate(Class<?> clazz, String templateId, Map<String, Object> params) {
+        try {
+            AnnotationMetadata annotationMetadata = AnnotationMetadataFactory.getAnnotationMetadata(clazz);
+            String template = annotationMetadata.getTemplate(templateId);
+            String queryDsl = VelocityUtils.process(template, params);
+            Request request = new Request("GET", String.format("%s/_search", annotationMetadata.getIndex()));
+            request.setJsonEntity(queryDsl);
+            Response response = this.lowLevelClient.performRequest(request);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                LOGGER.warn("searchTemplate failure,result {}", EntityUtils.toString(response.getEntity()));
+                return new JSONObject();
+            }
+            return JSONObject.parseObject(EntityUtils.toString(response.getEntity()));
+        } catch (Exception e) {
+            LOGGER.error("searchTemplate failure,error {}", e.getMessage(), e);
+            return new JSONObject();
+        }
+    }
+
+    public JSONObject searchTemplate(String index, String templateContent) {
+        return searchTemplate(index, templateContent, Collections.emptyMap());
+    }
+
+    public JSONObject searchTemplate(String index, String templateContent, Map<String, Object> params) {
+        try {
+            String queryDsl = VelocityUtils.process(templateContent, params);
+            Request request = new Request("GET", String.format("%s/_search", index));
+            request.setJsonEntity(queryDsl);
+            Response response = this.lowLevelClient.performRequest(request);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                LOGGER.warn("searchTemplate failure,result {}", EntityUtils.toString(response.getEntity()));
+                return new JSONObject();
+            }
+            return JSONObject.parseObject(EntityUtils.toString(response.getEntity()));
+        } catch (Exception e) {
+            LOGGER.error("searchTemplate failure,error {}", e.getMessage(), e);
+            return new JSONObject();
+        }
+    }
+
+    public <T> List<T> searchListTemplate(Class<T> clazz, String templateId, Map<String, Object> params) {
+        AnnotationMetadata annotationMetadata = AnnotationMetadataFactory.getAnnotationMetadata(clazz);
+        try {
+            String template = annotationMetadata.getTemplate(templateId);
+            if (Objects.isNull(template)) {
+                throw new NullPointerException("template not found,templateId " + templateId);
+            }
+            String queryDsl = VelocityUtils.process(template, params);
+            Request request = new Request("GET", String.format("%s/_search", annotationMetadata.getIndex()));
+            request.setJsonEntity(queryDsl);
+            Response response = this.lowLevelClient.performRequest(request);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                LOGGER.warn("searchListTemplate failure,result {}", EntityUtils.toString(response.getEntity()));
+                return Collections.emptyList();
+            }
+            String jsonResult = EntityUtils.toString(response.getEntity());
+            JSONObject jsonObject = JSONObject.parseObject(jsonResult);
+            JSONObject hits = jsonObject.getJSONObject("hits");
+            return ConvertUtils.convertList(annotationMetadata, clazz, hits);
+        } catch (Exception e) {
+            LOGGER.warn("searchListTemplate throw error {}", e.getMessage(), e);
+            return Collections.emptyList();
+        }
+    }
+
     /**
      * 条件删除
      *
@@ -605,6 +679,59 @@ public class OpenSearchTemplate {
      */
     public <T> Optional<T> searchOne(Class<T> clazz, QueryBuilder queryBuilder) {
         return searchOne(clazz, searchSourceBuilder -> searchSourceBuilder.query(queryBuilder));
+    }
+
+    /**
+     * 使用Velocity模板查询单条数据
+     *
+     * @param clazz
+     * @param templateId
+     * @param <T>
+     * @return
+     */
+    public <T> Optional<T> searchOneTemplate(Class<T> clazz, String templateId) {
+        return searchOneTemplate(clazz, templateId, Collections.emptyMap());
+    }
+
+    /**
+     * 使用Velocity模板查询单条数据
+     *
+     * @param clazz
+     * @param templateId
+     * @param params
+     * @param <T>
+     * @return
+     */
+    public <T> Optional<T> searchOneTemplate(Class<T> clazz, String templateId, Map<String, Object> params) {
+        AnnotationMetadata annotationMetadata = AnnotationMetadataFactory.getAnnotationMetadata(clazz);
+        try {
+            String template = annotationMetadata.getTemplate(templateId);
+            if (Objects.isNull(template)) {
+                throw new NullPointerException("template not found,templateId " + templateId);
+            }
+            String queryDsl = VelocityUtils.process(template, params);
+            Request request = new Request("GET", String.format("%s/_search", annotationMetadata.getIndex()));
+            request.setJsonEntity(queryDsl);
+            Response response = this.lowLevelClient.performRequest(request);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                LOGGER.warn("searchOneTemplate failure,result {}", EntityUtils.toString(response.getEntity()));
+                return Optional.empty();
+            }
+            String jsonResult = EntityUtils.toString(response.getEntity());
+            JSONObject jsonObject = JSONObject.parseObject(jsonResult);
+            JSONObject hits = jsonObject.getJSONObject("hits");
+            long value = hits.getJSONObject("total").getLongValue("value");
+            if (value > 0) {
+                JSONArray jsonArray = hits.getJSONArray("hits");
+                JSONObject item = jsonArray.getJSONObject(0);
+                String id = item.getString("_id");
+                return Optional.of(ConvertUtils.convert(annotationMetadata, clazz, id, item.getJSONObject("_source")));
+            }
+            return Optional.empty();
+        } catch (Exception e) {
+            LOGGER.warn("searchOne throw error {}", e.getMessage(), e);
+            return Optional.empty();
+        }
     }
 
     /**

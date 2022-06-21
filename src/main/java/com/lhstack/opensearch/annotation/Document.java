@@ -21,11 +21,17 @@ public @interface Document {
     String value() default "";
 
     /**
-     * classpath:路径首字母不要使用/
-     * mapping json文件，默认classpath:mappings/Class.name
+     *
+     * mapping json文件，默认classpath:mappings/(Class.name).json
      *
      * @return
      */
     String mappingPath() default  "";
+
+    /**
+     * 模板路径，默认classpath:searchTemplates/(Class.name).yaml
+     * @return
+     */
+    String templatePath() default "";
 
 }

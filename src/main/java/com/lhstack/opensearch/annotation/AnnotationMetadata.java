@@ -1,10 +1,14 @@
 package com.lhstack.opensearch.annotation;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
+import com.lhstack.opensearch.utils.PathResolveUtils;
+import org.yaml.snakeyaml.Yaml;
+
 import java.lang.reflect.Field;
-import java.util.Objects;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * @Description TODO
@@ -22,6 +26,27 @@ public class AnnotationMetadata {
     private IdGenerator idGenerator;
 
     private Field idField;
+
+    private Map<String, String> templateCache;
+    private String templatePath;
+
+    public AnnotationMetadata setTemplatePath(String templatePath) {
+        this.templatePath = templatePath;
+        byte[] bytes = PathResolveUtils.readBytes(templatePath);
+        if (bytes == PathResolveUtils.EMPTY_BYTES) {
+            templateCache = Collections.emptyMap();
+            return this;
+        }
+        Yaml yaml = new Yaml();
+        JSONObject jsonObject = yaml.loadAs(new String(bytes, StandardCharsets.UTF_8), JSONObject.class);
+        this.templateCache = jsonObject.toJavaObject(new TypeReference<Map<String, String>>() {
+        });
+        return this;
+    }
+
+    public String getTemplate(String id) {
+        return this.templateCache.get(id);
+    }
 
     public AnnotationMetadata setIdGenerator(IdGenerator idGenerator) {
         this.idGenerator = idGenerator;
@@ -66,34 +91,13 @@ public class AnnotationMetadata {
                 ", mappingPath='" + mappingPath + '\'' +
                 ", idGenerator=" + idGenerator +
                 ", idField=" + idField +
+                ", templateCache=" + templateCache +
+                ", templatePath='" + templatePath + '\'' +
                 '}';
     }
 
     public byte[] readMappingBytes() {
-        InputStream inputStream = null;
-        try {
-            if (this.mappingPath.startsWith("classpath:")) {
-                inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(this.mappingPath.substring(10));
-            } else if (this.mappingPath.startsWith("file:")) {
-                inputStream = new FileInputStream(this.mappingPath.substring(5));
-            } else {
-                inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(this.mappingPath);
-            }
-            if (Objects.isNull(inputStream)) {
-                return null;
-            }
-            return inputStream.readAllBytes();
-        } catch (Exception e) {
-            return null;
-        } finally {
-            if (Objects.nonNull(inputStream)) {
-                try {
-                    inputStream.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+        return PathResolveUtils.readBytes(this.mappingPath);
     }
 
 }

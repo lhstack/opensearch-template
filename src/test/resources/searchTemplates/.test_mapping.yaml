@@ -1,0 +1,18 @@
+searchOne: |
+  {
+    "query":{
+      "match": {
+        "name": "${name}"
+      }
+    }
+  }
+searchList: |
+  {
+    "query": {
+       "term": {
+         "_id": {
+           "value": "1538813540399640577"
+         }
+       }
+    }
+  }
